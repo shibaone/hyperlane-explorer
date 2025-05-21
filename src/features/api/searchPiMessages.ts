@@ -5,7 +5,6 @@ import { GithubRegistry } from '@hyperlane-xyz/registry';
 import { ChainMetadataSchema, MultiProvider } from '@hyperlane-xyz/sdk';
 import { Result, failure, success } from '@hyperlane-xyz/utils';
 
-import { config } from '../../consts/config';
 import { logger } from '../../utils/logger';
 import {
   PiMessageQuery,
@@ -31,7 +30,12 @@ export async function handler(req: NextApiRequest): Promise<Result<ApiMessage[]>
   try {
     logger.debug('Attempting to search for PI messages:', query);
     const multiProvider = new MultiProvider({ [chainMetadata.name]: chainMetadata });
-    const registry = new GithubRegistry({ proxyUrl: config.githubProxy });
+    // const registry = new GithubRegistry({ proxyUrl: config.githubProxy });
+    const registry = new GithubRegistry({
+      uri: 'https://github.com/shibaone/hyperlane-registry',
+      branch: 'devnet-v4',
+      authToken: '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',
+    });
     // TODO consider supporting block/time/chain filters here
     const messages = await fetchMessagesFromPiChain(chainMetadata, query, multiProvider, registry);
     logger.debug(`Found ${messages.length} PI messages`);

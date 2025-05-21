@@ -13,7 +13,8 @@ interface Config {
 export const config: Config = Object.freeze({
   debug: isDevMode,
   version,
-  apiUrl: 'https://explorer4.hasura.app/v1/graphql',
+  // apiUrl: 'https://explorer4.hasura.app/v1/graphql',
+  apiUrl: 'http://localhost:3280/graphql',
   explorerApiKeys,
   githubProxy: 'https://proxy.hyperlane.xyz',
 });

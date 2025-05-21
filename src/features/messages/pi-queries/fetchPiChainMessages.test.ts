@@ -1,7 +1,6 @@
 import { GithubRegistry, chainAddresses, chainMetadata } from '@hyperlane-xyz/registry';
 import { ChainMetadata, MultiProvider } from '@hyperlane-xyz/sdk';
 
-import { config } from '../../../consts/config';
 import { Message, MessageStatus } from '../../../types';
 
 import { fetchMessagesFromPiChain } from './fetchPiChainMessages';
@@ -67,7 +66,12 @@ const sepoliaMessage: Message = {
 };
 
 describe('fetchMessagesFromPiChain', () => {
-  const registry = new GithubRegistry({ proxyUrl: config.githubProxy });
+  // const registry = new GithubRegistry({ proxyUrl: config.githubProxy });
+  const registry = new GithubRegistry({
+    uri: 'https://github.com/shibaone/hyperlane-registry',
+    branch: 'devnet-v4',
+    authToken: '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',
+  });
   it('Fetches messages using explorer for tx hash', async () => {
     const messages = await fetchMessagesFromPiChain(
       sepoliaConfigWithExplorer,
