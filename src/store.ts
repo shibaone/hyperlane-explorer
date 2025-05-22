@@ -10,6 +10,7 @@ import { objFilter, objMap, promiseObjAll } from '@hyperlane-xyz/utils';
 import pino from 'pino';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { config } from './consts/config';
 import { DomainsEntry } from './features/chains/queries/fragments';
 import { WarpRouteChainAddressMap } from './types';
 import { logger } from './utils/logger';
@@ -57,11 +58,10 @@ export const useStore = create<AppState>()(
         logger.debug('Setting multiProvider in store');
         set({ multiProvider });
       },
-      // registry: new GithubRegistry({ proxyUrl: config.githubProxy }),
       registry: new GithubRegistry({
-        uri: 'https://github.com/shibaone/hyperlane-registry',
-        branch: 'devnet-v4',
-        authToken: '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',
+        uri: config.registry.uri,
+        branch: config.registry.branch,
+        authToken: config.registry.authToken,
         logger: pino({ level: 'debug' }),
       }),
       setRegistry: (registry: IRegistry) => {
