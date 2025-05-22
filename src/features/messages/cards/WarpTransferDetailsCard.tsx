@@ -1,20 +1,13 @@
-import { MultiProvider } from '@hyperlane-xyz/sdk';
-import {
-  bytesToProtocolAddress,
-  fromHexString,
-  fromWei,
-  parseWarpRouteMessage,
-} from '@hyperlane-xyz/utils';
 import { Tooltip } from '@hyperlane-xyz/widgets';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { TokenIcon } from '../../../components/icons/TokenIcon';
 import { Card } from '../../../components/layout/Card';
 import SendMoney from '../../../images/icons/send-money.svg';
 import { useMultiProvider, useStore } from '../../../store';
-import { Message, WarpRouteChainAddressMap, WarpRouteDetails } from '../../../types';
-import { logger } from '../../../utils/logger';
-import { getTokenFromWarpRouteChainAddressMap } from '../../../utils/token';
+import { Message } from '../../../types';
 import { tryGetBlockExplorerAddressUrl } from '../../../utils/url';
+import { parseWarpRouteMessageDetails } from '../utils';
 import { KeyValueRow } from './KeyValueRow';
 import { BlockExplorerAddressUrls } from './types';
 
@@ -25,11 +18,9 @@ interface Props {
 
 export function WarpTransferDetailsCard({ message, blur }: Props) {
   const multiProvider = useMultiProvider();
-  const { warpRouteChainAddressMap } = useStore((s) => ({
-    warpRouteChainAddressMap: s.warpRouteChainAddressMap,
-  }));
+  const warpRouteChainAddressMap = useStore((s) => s.warpRouteChainAddressMap);
   const warpRouteDetails = useMemo(
-    () => parseWarpRouteDetails(message, warpRouteChainAddressMap, multiProvider),
+    () => parseWarpRouteMessageDetails(message, warpRouteChainAddressMap, multiProvider),
     [message, warpRouteChainAddressMap, multiProvider],
   );
   const [blockExplorerAddressUrls, setBlockExplorerAddressUrls] = useState<
@@ -44,19 +35,19 @@ export function WarpTransferDetailsCard({ message, blur }: Props) {
     const originToken = await tryGetBlockExplorerAddressUrl(
       multiProvider,
       message.originChainId,
-      warpRouteDetails.originTokenAddress,
+      warpRouteDetails.originToken.addressOrDenom,
     );
     const destinationToken = await tryGetBlockExplorerAddressUrl(
       multiProvider,
       message.destinationChainId,
-      warpRouteDetails.destinationTokenAddress,
+      warpRouteDetails.destinationToken.addressOrDenom,
     );
     const transferRecipient = await tryGetBlockExplorerAddressUrl(
       multiProvider,
       message.destinationChainId,
       warpRouteDetails.transferRecipient,
     );
-    return { destinationToken, originToken, transferRecipient };
+    return { originToken, destinationToken, transferRecipient };
   }, [message, multiProvider, warpRouteDetails]);
 
   useEffect(() => {
@@ -67,18 +58,16 @@ export function WarpTransferDetailsCard({ message, blur }: Props) {
 
   if (!warpRouteDetails) return null;
 
-  const {
-    amount,
-    destinationTokenAddress,
-    transferRecipient,
-    originTokenAddress,
-    originTokenSymbol,
-  } = warpRouteDetails;
+  const { amount, transferRecipient, originToken, destinationToken } = warpRouteDetails;
 
   return (
     <Card className="w-full space-y-4">
       <div className="flex items-center justify-between">
-        <Image src={SendMoney} width={28} height={28} alt="" className="opacity-80" />
+        {warpRouteDetails.originToken.logoURI ? (
+          <TokenIcon token={warpRouteDetails.originToken} size={28} />
+        ) : (
+          <Image src={SendMoney} width={28} height={28} alt="" className="opacity-80" />
+        )}
         <div className="flex items-center pb-1">
           <h3 className="mr-2 text-md font-medium text-blue-500">Warp Transfer Details</h3>
           <Tooltip
@@ -91,7 +80,7 @@ export function WarpTransferDetailsCard({ message, blur }: Props) {
         <KeyValueRow
           label="Amount:"
           labelWidth="w-20 sm:w-32"
-          display={`${amount} ${originTokenSymbol}`}
+          display={`${amount} ${originToken.symbol}`}
           displayWidth="w-64 sm:w-96"
           blurValue={blur}
           showCopy
@@ -99,7 +88,7 @@ export function WarpTransferDetailsCard({ message, blur }: Props) {
         <KeyValueRow
           label="Origin token:"
           labelWidth="w-20 sm:w-32"
-          display={originTokenAddress}
+          display={originToken.addressOrDenom}
           displayWidth="w-64 sm:w-96"
           blurValue={blur}
           link={blockExplorerAddressUrls?.originToken}
@@ -108,7 +97,7 @@ export function WarpTransferDetailsCard({ message, blur }: Props) {
         <KeyValueRow
           label="Destination token:"
           labelWidth="w-20 sm:w-32"
-          display={destinationTokenAddress}
+          display={destinationToken.addressOrDenom}
           displayWidth="w-64 sm:w-96"
           blurValue={blur}
           link={blockExplorerAddressUrls?.destinationToken}
@@ -126,63 +115,4 @@ export function WarpTransferDetailsCard({ message, blur }: Props) {
       </div>
     </Card>
   );
-}
-
-export function parseWarpRouteDetails(
-  message: Message,
-  warpRouteChainAddressMap: WarpRouteChainAddressMap,
-  multiProvider: MultiProvider,
-): WarpRouteDetails | undefined {
-  try {
-    const {
-      body,
-      origin: { to },
-      originDomainId,
-      destinationDomainId,
-      recipient,
-    } = message;
-
-    const originMetadata = multiProvider.tryGetChainMetadata(originDomainId);
-    const destinationMetadata = multiProvider.tryGetChainMetadata(destinationDomainId);
-
-    if (!body || !originMetadata || !destinationMetadata) return undefined;
-
-    const originToken = getTokenFromWarpRouteChainAddressMap(
-      originMetadata,
-      to,
-      warpRouteChainAddressMap,
-    );
-    const destinationToken = getTokenFromWarpRouteChainAddressMap(
-      destinationMetadata,
-      recipient,
-      warpRouteChainAddressMap,
-    );
-
-    // If tokens are not found with the addresses, it means the message
-    // is not a warp transfer between tokens known to the registry
-    if (!originToken || !destinationToken) return undefined;
-
-    const parsedMessage = parseWarpRouteMessage(body);
-    const bytes = fromHexString(parsedMessage.recipient);
-    const address = bytesToProtocolAddress(
-      bytes,
-      destinationMetadata.protocol,
-      destinationMetadata.bech32Prefix,
-    );
-
-    return {
-      amount: fromWei(
-        parsedMessage.amount.toString(),
-        Math.max(originToken.decimals, destinationToken.decimals) || 18,
-      ),
-      transferRecipient: address,
-      originTokenAddress: to,
-      originTokenSymbol: originToken.symbol,
-      destinationTokenAddress: recipient,
-      destinationTokenSymbol: destinationToken.symbol,
-    };
-  } catch (err) {
-    logger.error('Error parsing warp route details:', err);
-    return undefined;
-  }
 }
