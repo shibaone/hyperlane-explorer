@@ -32,7 +32,7 @@ export function useMessageSearchQuery(
   const multiProvider = useMultiProvider();
   const { chains } = useScrapedChains(multiProvider);
   const mainnetDomainIds = Object.values(chains)
-    .filter((chain) => !chain.isTestnet)
+    // .filter((chain) => !chain.isTestnet)
     .map((chain) => chain.domainId);
 
   const hasInput = !!sanitizedInput;
@@ -86,9 +86,11 @@ export function useMessageSearchQuery(
   );
   const messageList = useMemo(() => {
     if (hasInput || hasFilter) return unfilteredMessageList;
-    return unfilteredMessageList
-      .filter((m) => Date.now() - m.origin.timestamp < 1000 * 60 * 60) // filter out messages older than 1 hour
-      .slice(0, 20);
+    return (
+      unfilteredMessageList
+        // .filter((m) => Date.now() - m.origin.timestamp < 1000 * 60 * 60) // filter out messages older than 1 hour
+        .slice(0, 20)
+    );
   }, [hasInput, hasFilter, unfilteredMessageList]);
 
   const isMessagesFound = messageList.length > 0;

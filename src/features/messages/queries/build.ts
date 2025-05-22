@@ -118,14 +118,14 @@ export function buildMessageSearchQuery(
         ${whereClause}
       ]
     },
-    order_by: {id: desc},
+    order_by: {id: Desc},
     limit: ${limit}
     ) {
       ${useStub ? messageStubFragment : messageDetailsFragment}
     }`,
   );
 
-  const query = `query ($search: bytea, $originChains: [Int!], $destinationChains: [Int!], $startTime: timestamp, $endTime: timestamp) @cached(ttl: 5) {
+  const query = `query ($search: bytea, $originChains: [int_32!], $destinationChains: [int_32!], $startTime: timestamp, $endTime: timestamp) @cached(ttl: 5) {
     ${queries.join('\n')}
   }`;
   return { query, variables };
