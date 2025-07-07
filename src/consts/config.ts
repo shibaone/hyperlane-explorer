@@ -18,14 +18,13 @@ interface Config {
 export const config: Config = Object.freeze({
   debug: isDevMode,
   version,
-  // apiUrl: 'https://explorer4.hasura.app/v1/graphql',
-  apiUrl: 'http://localhost:3280/graphql',
+  apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3280/graphql',
   explorerApiKeys,
   githubProxy: 'https://proxy.hyperlane.xyz',
   registry: {
-    uri: process?.env?.REGISTRY_URI || 'https://github.com/shibaone/hyperlane-registry',
-    branch: process?.env?.REGISTRY_BRANCH || 'devnet-v4',
-    authToken: process?.env?.REGISTRY_AUTH_TOKEN || '',
+    uri: process.env.REGISTRY_URI || 'https://github.com/shibaone/hyperlane-registry',
+    branch: process.env.REGISTRY_BRANCH || 'testnet',
+    authToken: process.env.REGISTRY_AUTH_TOKEN || '',
   },
 });
 
